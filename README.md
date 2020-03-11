@@ -1,3 +1,4 @@
+bryantaoli and batmanShu learn ORBSLAM2
 ## 更多资料请见Wiki和附件
 - Wiki 参考博客
 - 附件 参考论文、ppt以及程序
