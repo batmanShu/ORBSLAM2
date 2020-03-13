@@ -375,15 +375,22 @@ int Optimizer::PoseOptimization(Frame *pFrame)
 
                 vpEdgesMono.push_back(e);
                 vnIndexEdgeMono.push_back(i);
-            }
+            }  //那么如果是RGBD观测值呢
             else  // Stereo observation 双目
             {
+                //RGBD也会进这个else
                 nInitialCorrespondences++;
                 pFrame->mvbOutlier[i] = false;
 
                 //SET EDGE
                 Eigen::Matrix<double,3,1> obs;// 这里和单目不同
                 const cv::KeyPoint &kpUn = pFrame->mvKeysUn[i];
+
+                //目前问题所在
+				//已经解决  Frame.cc中的ComputeStereoFromRGBD，把RGBD数据源统一成双目 19.4.13
+				//不仅是把RGBD数据源统一成双目而是把RGBD数据中有D的数据弄成双目，没D的数据弄成单目 19.4.14，具体看下面这篇知乎
+				//https://www.zhihu.com/question/280964049
+
                 const float &kp_ur = pFrame->mvuRight[i];
                 obs << kpUn.pt.x, kpUn.pt.y, kp_ur;// 这里和单目不同
 

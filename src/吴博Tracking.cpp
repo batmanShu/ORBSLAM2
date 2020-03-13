@@ -273,6 +273,9 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
     return mCurrentFrame.mTcw.clone();
 }
 
+// Preprocess the input and call Track(). Extract features and performs stereo matching.
+// 预处理输入并调用Track()。提取特征并执行立体匹配。
+
 // 输入左目RGB或RGBA图像
 // 1、将图像转为mImGray并初始化mCurrentFrame
 // 2、进行tracking过程
@@ -280,7 +283,7 @@ cv::Mat Tracking::GrabImageRGBD(const cv::Mat &imRGB,const cv::Mat &imD, const d
 cv::Mat Tracking::GrabImageMonocular(const cv::Mat &im, const double &timestamp)
 {
     mImGray = im;
-
+    //mImGray是当前帧Current Frame的图像，是一个cv::Mat     Frame里除了图像之外还要有时间戳，描述子
     // 步骤1：将RGB或RGBA图像转为灰度图像
     if(mImGray.channels()==3)
     {
@@ -650,13 +653,13 @@ void Tracking::StereoInitialization()
         mpMap->AddKeyFrame(pKFini);
 
         // Create MapPoints and asscoiate to KeyFrame
-        // 步骤4：为每个特征点构造MapPoint
+        // 步骤4：为每个特征点构造MapPoint mCurrentFrame.N是当前帧的特征点个数
         for(int i=0; i<mCurrentFrame.N;i++)
         {
             float z = mCurrentFrame.mvDepth[i];
             if(z>0)
             {
-                // 步骤4.1：通过反投影得到该特征点的3D坐标
+                // 步骤4.1：通过反投影得到该特征点的3D坐标 x3D是世界系的坐标
                 cv::Mat x3D = mCurrentFrame.UnprojectStereo(i);
                 // 步骤4.2：将3D点构造为MapPoint
                 MapPoint* pNewMP = new MapPoint(x3D,pKFini,mpMap);
@@ -711,7 +714,7 @@ void Tracking::StereoInitialization()
 }
 
 /**
- * @brief 单目的地图初始化
+ * @brief 单目的地图初始化 主要是对极几何
  *
  * 并行地计算基础矩阵和单应性矩阵，选取其中一个模型，恢复出最开始两帧之间的相对姿态以及点云
  * 得到初始两帧的匹配、相对运动、初始MapPoints
@@ -733,7 +736,9 @@ void Tracking::MonocularInitialization()
             mvbPrevMatched.resize(mCurrentFrame.mvKeysUn.size());
             for(size_t i=0; i<mCurrentFrame.mvKeysUn.size(); i++)
                 mvbPrevMatched[i]=mCurrentFrame.mvKeysUn[i].pt;
-
+            
+            //空的时候不进去，直接跳过到下面，生成一个指针，然后就能去else了
+			//最前面的if得是mpInitializer为空才进来，那么到这里mpInitializer肯定是空的，这个if进不去
             // 这两句是多余的
             if(mpInitializer)
                 delete mpInitializer;
@@ -754,7 +759,9 @@ void Tracking::MonocularInitialization()
         // 因此只有连续两帧的特征点个数都大于100时，才能继续进行初始化过程
         if((int)mCurrentFrame.mvKeys.size()<=100)
         {
+            //如果第一帧大于100了，但是第二帧小于等于100，再把mpInitializer变成0
             delete mpInitializer;
+			//delete只会释放内存空间，不会删除指针本身，不置为空就变成野指针了
             mpInitializer = static_cast<Initializer*>(NULL);
             fill(mvIniMatches.begin(),mvIniMatches.end(),-1);
             return;
@@ -778,7 +785,7 @@ void Tracking::MonocularInitialization()
 
         cv::Mat Rcw; // Current Camera Rotation
         cv::Mat tcw; // Current Camera Translation
-        vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches)
+        vector<bool> vbTriangulated; // Triangulated Correspondences (mvIniMatches) 三角对应
 
         // 步骤5：通过H模型或F模型进行单目初始化，得到两帧间相对运动、初始MapPoints
         if(mpInitializer->Initialize(mCurrentFrame, mvIniMatches, Rcw, tcw, mvIniP3D, vbTriangulated))
@@ -975,12 +982,12 @@ void Tracking::CheckReplacedInLastFrame()
  */
 bool Tracking::TrackReferenceKeyFrame()
 {
-    // Compute Bag of Words vector
+    // Compute Bag of Words vector  计算词袋向量
     // 步骤1：将当前帧的描述子转化为BoW向量
     mCurrentFrame.ComputeBoW();
 
-    // We perform first an ORB matching with the reference keyframe
-    // If enough matches are found we setup a PnP solver
+    // We perform first an ORB matching with the reference keyframe 我们首先执行一个与参考关键帧相比配的ORB
+    // If enough matches are found we setup a PnP solver 如果找到足够的匹配，我们设置一个PnP求解器
     ORBmatcher matcher(0.7,true);
     vector<MapPoint*> vpMapPointMatches;
      
@@ -995,7 +1002,7 @@ bool Tracking::TrackReferenceKeyFrame()
     mCurrentFrame.mvpMapPoints = vpMapPointMatches;
     mCurrentFrame.SetPose(mLastFrame.mTcw); // 用上一次的Tcw设置初值，在PoseOptimization可以收敛快一些
 
-    // 步骤4:通过优化3D-2D的重投影误差来获得位姿
+    // 步骤4:通过优化3D-2D的重投影误差来获得位姿 这是PnP的BA解法
     Optimizer::PoseOptimization(&mCurrentFrame);
 
     // Discard outliers

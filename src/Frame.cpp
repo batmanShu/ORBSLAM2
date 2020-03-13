@@ -756,8 +756,8 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
 
     for(int i=0; i<N; i++)
     {
-        const cv::KeyPoint &kp = mvKeys[i];
-        const cv::KeyPoint &kpU = mvKeysUn[i];
+        const cv::KeyPoint &kp = mvKeys[i]; //mvKeys是没去畸变的特征点坐标
+        const cv::KeyPoint &kpU = mvKeysUn[i]; //mvKeysUn是去畸变的特征点坐标
 
         const float &v = kp.pt.y;
         const float &u = kp.pt.x;
@@ -767,6 +767,7 @@ void Frame::ComputeStereoFromRGBD(const cv::Mat &imDepth)
         if(d>0)
         {
             mvDepth[i] = d;
+            //根据视差公式求得横坐标
             mvuRight[i] = kpU.pt.x-mbf/d;
         }
     }
@@ -792,6 +793,8 @@ cv::Mat Frame::UnprojectStereo(const int &i)
         const float x = (u-cx)*z*invfx;
         const float y = (v-cy)*z*invfy;
         cv::Mat x3Dc = (cv::Mat_<float>(3,1) << x, y, z);
+
+        //mRwc和mOw是怎么来的，ICP还是PnP还是对极几何？//mRwc和mOw是怎么来的，ICP还是PnP还是对极几何？
         return mRwc*x3Dc+mOw;
     }
     else
