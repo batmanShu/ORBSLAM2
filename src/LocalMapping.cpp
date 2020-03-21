@@ -374,7 +374,7 @@ void LocalMapping::CreateNewMapPoints()
         const float &invfy2 = pKF2->invfy;
 
         // Triangulate each match
-        // 步骤6：对每对匹配通过三角化生成3D点,he Triangulate函数差不多
+        // 步骤6：对每对匹配通过三角化生成3D点,和Triangulate函数差不多
         const int nmatches = vMatchedIndices.size();
         for(int ikp=0; ikp<nmatches; ikp++)
         {
@@ -463,7 +463,7 @@ void LocalMapping::CreateNewMapPoints()
             cv::Mat x3Dt = x3D.t();
 
             //Check triangulation in front of cameras
-            // 步骤6.5：检测生成的3D点是否在相机前方
+            // 步骤6.5：检测生成的3D点是否在相机前方 cheirality
             float z1 = Rcw1.row(2).dot(x3Dt)+tcw1.at<float>(2);
             if(z1<=0)
                 continue;
